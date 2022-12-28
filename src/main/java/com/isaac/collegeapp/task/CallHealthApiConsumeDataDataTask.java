@@ -2,6 +2,11 @@ package com.isaac.collegeapp.task;
 
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.isaac.collegeapp.h2model.HealthDataVO;
+import com.isaac.collegeapp.jparepo.HealthDataRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,32 +34,60 @@ public class CallHealthApiConsumeDataDataTask implements Runnable {
     // groovy will magically let you inject into this class
     public String newtablename;
 
+    public HealthDataRepo healthDataRepo;
+
+
     RestTemplate restTemplate = new RestTemplate();
 
-    public CallHealthApiConsumeDataDataTask(RestTemplate restTemplate) {
+    public CallHealthApiConsumeDataDataTask(RestTemplate restTemplate, HealthDataRepo healthDataRepo) {
         this.restTemplate = restTemplate;
+        this.healthDataRepo = healthDataRepo;
     }
 
     @Override
     public void run() {
-        makecallgetdata();
+        try {
+            makecallgetdata();
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
 
         // TODO: import model specific data, with object models
         // importCsvDataModel()
     }
 
     // import generic csv data
-    void makecallgetdata() {
+    void makecallgetdata() throws JsonProcessingException {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
        // headers.add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36");
 
         HttpEntity<String> entity = new HttpEntity<>("parameters", headers);
-        ResponseEntity<?> result =
+        ResponseEntity<String> result =
                 restTemplate.exchange("https://data.cms.gov/data-api/v1/dataset/92396110-2aed-4d63-a6a2-5d6207d46a29/data", HttpMethod.GET, entity, String.class);
 
-        System.out.println(result.getBody());
+
+
+
+
+
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.readTree(result.getBody());
+
+        
+        for(int i = 0; i < jsonNode.size(); i++){
+            JsonNode item = jsonNode.get(i);
+            //System.out.println(item.toPrettyString());
+            HealthDataVO healthDataVO = objectMapper.readValue(item.toString(), HealthDataVO.class);
+            healthDataVO.setUpdatedtimestamp(java.time.LocalDateTime.now());
+            healthDataVO.setCreatetimestamp(java.time.LocalDateTime.now());
+            healthDataRepo.save(healthDataVO);
+        }
+        
+      
+      //  System.out.println(result.getBody());
 
 
         // https://data.cms.gov/data-api/v1/dataset/92396110-2aed-4d63-a6a2-5d6207d46a29/data

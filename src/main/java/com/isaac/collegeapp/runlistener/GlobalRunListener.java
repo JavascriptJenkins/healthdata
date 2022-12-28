@@ -1,5 +1,6 @@
 package com.isaac.collegeapp.runlistener;
 
+import com.isaac.collegeapp.jparepo.HealthDataRepo;
 import com.isaac.collegeapp.model.ProfessorDAO;
 import com.isaac.collegeapp.repo.ProfessorRepository;
 import com.isaac.collegeapp.task.CallHealthApiConsumeDataDataTask;
@@ -25,6 +26,9 @@ public class GlobalRunListener implements ApplicationListener<ApplicationReadyEv
     @Autowired
     TaskExecutor taskExecutor;
 
+    @Autowired
+    HealthDataRepo healthDataRepo;
+
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
@@ -32,7 +36,7 @@ public class GlobalRunListener implements ApplicationListener<ApplicationReadyEv
 
         RestTemplate restTemplate = new RestTemplate();
         CallHealthApiConsumeDataDataTask callHealthApiConsumeDataDataTask =
-                new CallHealthApiConsumeDataDataTask(restTemplate);
+                new CallHealthApiConsumeDataDataTask(restTemplate, healthDataRepo);
         taskExecutor.execute(callHealthApiConsumeDataDataTask);
 
         //loadDatabaseConnection();
